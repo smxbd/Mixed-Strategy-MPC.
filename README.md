@@ -1,7 +1,5 @@
 # EarlyVersion
 
-这是 revision20 Existing 基线的 MATLAB/Simulink 控制器重构程序包。仓库当前只发布程序、配置、模型源文件和说明文档；运行日志、图片、仿真结果、训练权重和 MATLAB 缓存不包含在 GitHub 版本中。
-
 ## 环境要求
 
 - MATLAB R2024b 或兼容版本
