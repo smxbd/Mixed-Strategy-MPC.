@@ -1,0 +1,8 @@
+{
+  "artifact": "transformer_1.mat",
+  "source": "C:/Users/LAPTOP1210/Documents/Codex/2026-09-06/files-pasted-by-the-user-matlab/outputs/project_execution_20260913/revision20/project/ml_ems/models/trained/transformer_1.mat",
+  "sha256": "dbc198b06e4141ac8321a62f961790b40c41c5b52790f4726b2c5fde0b14eed8",
+  "policy": "../config/transformer_runtime_policy.json",
+  "policy_field": "weights_sha256",
+  "retrained": false
+}

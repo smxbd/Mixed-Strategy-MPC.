@@ -1,0 +1,14 @@
+function cfg=continuation_config(project_root)
+% Use the verified Stage D runtime configuration, not the generic stub API.
+root=fullfile(project_root,'ml_ems'); addpath(root); paths=startup_ml_ems;
+outputs=fullfile(fileparts(fileparts(project_root)),'outputs');
+a=load(fullfile(outputs,'stageD_initial_training','training_config.mat'),'cfg'); cfg=a.cfg;
+cfg.paths=paths; cfg.p=init_baseline_params();
+cfg.model_dir=fullfile(outputs,'stageD_initial_training','models');
+assert(strcmp(file_sha256(fullfile(paths.models,'EMT_ML.slx')),'86dcdcbe1951291adbd000dbb30413dad307ad806e88c5633c2c596f56020591'),'Model differs from verified parity model');
+cfg.version='copy-continuation-20260907'; cfg.ensemble_size=1;
+cfg.control.incremental_balance=true; cfg.control.qp_projection=true;
+cfg.control.warmup=true; cfg.control.rate=double(cfg.control.rate);
+cfg.stop_time=30; cfg.fast_restart=false; cfg.mass_scale=1;
+cfg.initial_soc_percent=60; cfg.seed=20260906;
+end

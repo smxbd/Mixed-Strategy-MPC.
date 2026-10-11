@@ -1,0 +1,16 @@
+{
+  "version": "transformer-config-source-v2-executable-actions",
+  "default_profile": "executable_actions",
+  "selection_status": "same_cycle_command_gap_removed_SOC_and_rare_fallbacks_unresolved",
+  "reference_config": "transformer_reference_config.mat",
+  "reference_sha256": "38dc56ac7df0fc4f4335b85c8be49a9e7c83d171341cbb64e823215b76c01c3a",
+  "model_sha256": "d595aa3989c3655654f77b78063e347c0f8d5572a677b5a9361948c4a0a7a36e",
+  "weights_sha256": "dbc198b06e4141ac8321a62f961790b40c41c5b52790f4726b2c5fde0b14eed8",
+  "profiles": {
+    "legacy_flags": {"incremental_balance": false, "qp_projection": false},
+    "incremental_only": {"incremental_balance": true, "qp_projection": false},
+    "qp_only": {"incremental_balance": false, "qp_projection": true},
+    "trained_flags": {"incremental_balance": true, "qp_projection": true},
+    "executable_actions": {"incremental_balance": true, "qp_projection": true, "execution_aware": true}
+  }
+}

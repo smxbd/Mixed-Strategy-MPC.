@@ -1,0 +1,3 @@
+function cycle=build_stress300(varargin)
+p=inputParser; addParameter(p,'Save',false); addParameter(p,'OutputDir',''); parse(p,varargin{:}); cycle.name='stress300'; cycle.time=(0:0.1:300)'; t=cycle.time; cycle.v_ref=max(0,35+22*sin(2*pi*t/55)+12*sin(2*pi*t/13)); cycle.v_ref(t>=35&t<45)=cycle.v_ref(t>=35&t<45)+35; cycle.v_ref(t>=160&t<175)=max(0,cycle.v_ref(t>=160&t<175)-35); cycle.road_resistance=0.045+0.018*sin(2*pi*t/80); cycle.grade=0.04*sin(2*pi*t/70)+0.02*(t>120&t<190); cycle.steering_angle=0.03*sin(2*pi*t/9); cycle.aux_power=23+15*(mod(floor(t/25),2)==1); if p.Results.Save, save(fullfile(p.Results.OutputDir,'stress300.mat'),'cycle'); end
+end

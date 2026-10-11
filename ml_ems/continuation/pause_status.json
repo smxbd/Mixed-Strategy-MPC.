@@ -1,0 +1,10 @@
+{
+  "status": "paused_by_user",
+  "matlab_processes_at_verification": 0,
+  "baseline_batch": "C:\\Users\\LAPTOP1210\\Documents\\Codex\\2026-09-06\\files-pasted-by-the-user-matlab\\work\\Optimal1103_ML_copy\\ml_ems\\results\\continuation_baselines_20260907_211623_5a9b0d45",
+  "completed": 3,
+  "failed": 6,
+  "accepted": 0,
+  "training_started": false,
+  "summary": "C:\\Users\\LAPTOP1210\\Documents\\Codex\\2026-09-06\\files-pasted-by-the-user-matlab\\outputs\\本次执行与暂停总结_20260907.md"
+}

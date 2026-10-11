@@ -1,0 +1,15 @@
+{
+  "original_top_level_file_count": 22,
+  "all_original_top_level_files_unchanged": true,
+  "missing_document_links": [],
+  "model_load_status": "passed",
+  "model_compile_status": "passed",
+  "simulation_status": "not_run",
+  "compiled_ems_sample_time": [
+    0.02,
+    0
+  ],
+  "powershell_launcher_syntax": "passed",
+  "launcher_end_to_end_rerun": "not_run",
+  "source_probe_snapshot_retained": true
+}

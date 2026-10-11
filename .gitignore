@@ -1,0 +1,8 @@
+# MATLAB / Simulink generated caches and temporary logs
+slprj/
+*.slxc
+*.log
+
+# Reproducible run outputs are kept under ml_ems/results; ignore ad-hoc root dumps.
+/*.mat
+/*.png
