@@ -19,6 +19,9 @@ assert(isfield(policy.profiles,profile),'EMS:UnknownTransformerProfile', ...
 % workspace/training-config sources. Plant, cycle, seed and output paths
 % remain controlled by the calling experiment.
 cfg.control=reference.cfg.control;
+% Preserve the active branch's corrected tracking objective while retaining
+% the horizon and architecture settings required by the trained artifact.
+cfg.control.weights.speed=1.0;
 flags=policy.profiles.(profile);
 cfg.control.incremental_balance=logical(flags.incremental_balance);
 cfg.control.qp_projection=logical(flags.qp_projection);

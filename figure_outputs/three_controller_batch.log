@@ -1,0 +1,28 @@
+START city200 Existing
+RUN city200 completed wall=167.4s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\city200_Existing.mat RMSE=0.7761 fuel=3.9271 deltaSOC=-0.1138
+START city200 LSTM
+RUN city200 completed wall=513.3s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\city200_LSTM.mat RMSE=17.8933 fuel=0.1435 deltaSOC=-14.2844
+START city200 Transformer
+RUN city200 completed wall=182.9s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\city200_Transformer.mat RMSE=0.8740 fuel=3.7374 deltaSOC=-1.2756
+START suburban400 Existing
+RUN suburban400 completed wall=288.1s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\suburban400_Existing.mat RMSE=7.1967 fuel=21.2445 deltaSOC=0.2900
+START suburban400 LSTM
+RUN suburban400 completed wall=1570.1s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\suburban400_LSTM.mat RMSE=64.0004 fuel=0.0859 deltaSOC=-20.8958
+START suburban400 Transformer
+RUN suburban400 completed wall=422.6s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\suburban400_Transformer.mat RMSE=8.1097 fuel=19.1131 deltaSOC=-5.5776
+START stress300 Existing
+RUN stress300 completed wall=220.6s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\stress300_Existing.mat RMSE=10.4614 fuel=13.1092 deltaSOC=0.4067
+START stress300 LSTM
+RUN stress300 completed wall=932.8s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\stress300_LSTM.mat RMSE=33.6336 fuel=0.6392 deltaSOC=-12.2467
+START stress300 Transformer
+RUN stress300 completed wall=300.4s
+EXPORTED D:\功率优化\EarlyVersion\figure_outputs\three_controller_20261012\data\stress300_Transformer.mat RMSE=12.5654 fuel=11.7334 deltaSOC=-0.6575
+THREE_CONTROLLER_BATCH_COMPLETE

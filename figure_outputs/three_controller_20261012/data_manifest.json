@@ -1,0 +1,47 @@
+[
+  {
+    "data": "city200_Existing.mat",
+    "samples": 10001,
+    "sha256": "4a93c4b1b500b8a20f2033b78ecc51b32880a67b7f29486fd659a039234ab213"
+  },
+  {
+    "data": "city200_LSTM.mat",
+    "samples": 10001,
+    "sha256": "4d10c054b5972298150eca10fdf96f1dc016ec56ff66e434a53808b6c54f9622"
+  },
+  {
+    "data": "city200_Transformer.mat",
+    "samples": 10001,
+    "sha256": "732b62e045fae5cf86130e430b11250863aff9478442185ec1e1da1316a98e26"
+  },
+  {
+    "data": "suburban400_Existing.mat",
+    "samples": 20001,
+    "sha256": "d92a49d88924dbf524b7d8536182d35347167a8ee61f7ab7b80a386867163ad8"
+  },
+  {
+    "data": "suburban400_LSTM.mat",
+    "samples": 20001,
+    "sha256": "b53d8a185bb7cfa99b7e6dc9ac834d0ff370f5aaefa1baeb90464c0215de807a"
+  },
+  {
+    "data": "suburban400_Transformer.mat",
+    "samples": 20001,
+    "sha256": "03fa132d40480b5569e69ec64e86156dee437a2035056c63e76dd44cb1622d2b"
+  },
+  {
+    "data": "stress300_Existing.mat",
+    "samples": 15001,
+    "sha256": "7f52d268f92b7e4b30af58777ec50c50d1111c539d4777caff59b1e25647bc65"
+  },
+  {
+    "data": "stress300_LSTM.mat",
+    "samples": 15001,
+    "sha256": "c79feb6f7891dc584661d96458c802313c4a70bbcbe2a27c247c17564ddfcb69"
+  },
+  {
+    "data": "stress300_Transformer.mat",
+    "samples": 15001,
+    "sha256": "a12e564e1b54b9935956f0fdd6493fd1b78e5883a2254d49693384410b45340d"
+  }
+]

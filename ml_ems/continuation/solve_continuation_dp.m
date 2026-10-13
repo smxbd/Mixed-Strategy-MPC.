@@ -6,18 +6,38 @@ aux=interp1(cycle.time,cycle.aux_power,t);
 traction=(cfg.p.mass*cfg.mass_scale*gradient(v,dt)+cfg.p.mass*cfg.mass_scale*9.81.*(road+sin(grade))+.5*1.225*cfg.p.Cd*cfg.p.A*v.^2).*v/1000;
 demand=traction/.85+aux; sg=cfg.dp_soc_grid(:); bg=cfg.dp_power_grid(:)';
 N=numel(t); V=cfg.control.weights.terminal_soc*(sg-cfg.control.soc_target).^2;
-choice=zeros(numel(sg),N-1); E=cfg.p.Cb*cfg.p.Voltage0*3.6;
+choice=zeros(numel(sg),N-1);
 for k=N-1:-1:1
- next=sg-bg*dt/E; requested=demand(k)-bg; pe=max(0,min(cfg.p.Pe_max,requested));
+ % Use the same SOC-dependent OCV and resistance model as rollout_cost.
+ ocv=interp1(cfg.p.SOC_map/100,cfg.p.Uoc_map,sg);
+ R=interp1(cfg.p.SOC_map/100,cfg.p.R_map,sg);
+ disc=ocv.^2-4*R.*bg*1000;
+ current=(ocv-sqrt(max(0,disc)))./(2*R);
+ next=sg-current*dt/(cfg.p.Cb*3600); requested=demand(k)-bg;
+ % Negative wheel demand is handled by regenerative braking when available;
+ % any remaining braking is mechanical and must not make the DP infeasible.
+ pe=max(0,min(cfg.p.Pe_max,requested));
  ne=interp1(cfg.p.Peg,cfg.p.neg,pe); te=9549*pe./max(ne,1600);
  stageCost=fuel_rate(ne,te,cfg.p)*dt;
  candidate=interp1(sg,V,next,'linear',Inf)+stageCost;
- infeasible=requested<0|requested>cfg.p.Pe_max|next<sg(1)|next>sg(end)|te>interp1(cfg.p.ne_map,cfg.p.Te_max_map,ne);
+ infeasible=requested>cfg.p.Pe_max|disc<0|next<sg(1)|next>sg(end)|te>interp1(cfg.p.ne_map,cfg.p.Te_max_map,ne);
  candidate(infeasible)=Inf; [V,j]=min(candidate,[],2); choice(:,k)=j;
 end
 soc=cfg.initial_soc_percent/100; power=zeros(N,1); feasible=isfinite(interp1(sg,V,soc));
 for k=1:N-1
- [~,s]=min(abs(sg-soc)); j=choice(s,k); power(k)=max(0,demand(k)-bg(j)); soc=soc-bg(j)*dt/E;
+ if soc<=sg(1), slo=1; shi=1; alpha=0;
+ elseif soc>=sg(end), slo=numel(sg); shi=slo; alpha=0;
+ else
+  shi=find(sg>=soc,1,'first'); slo=shi-1; alpha=(soc-sg(slo))/(sg(shi)-sg(slo));
+ end
+ jlo=choice(slo,k); jhi=choice(shi,k);
+ pb=(1-alpha)*bg(jlo)+alpha*bg(jhi);
+ power(k)=max(0,demand(k)-pb);
+ ocv=interp1(cfg.p.SOC_map/100,cfg.p.Uoc_map,soc);
+ R=interp1(cfg.p.SOC_map/100,cfg.p.R_map,soc);
+ disc=ocv^2-4*R*pb*1000;
+ current=(ocv-sqrt(max(0,disc)))/(2*R);
+ soc=soc-current*dt/(cfg.p.Cb*3600);
  if soc<sg(1)||soc>sg(end)||power(k)>cfg.p.Pe_max, feasible=false; end
 end
 power(end)=power(end-1);

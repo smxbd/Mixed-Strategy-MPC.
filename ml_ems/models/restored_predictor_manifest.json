@@ -1,0 +1,20 @@
+{
+  "status": "restored_historical_candidates_not_retrained",
+  "architecture_comparison_valid": false,
+  "artifacts": {
+    "transformer_1.mat": {
+      "sha256": "dbc198b06e4141ac8321a62f961790b40c41c5b52790f4726b2c5fde0b14eed8",
+      "target_mode": "lastvalue_residual",
+      "training_Ts_s": 0.1,
+      "horizon_steps": 20
+    },
+    "lstm_1.mat": {
+      "sha256": "542f73dfdf97cf8b9b88ebdc22987333ffdeaf1936afca9a2849402b8969ae40",
+      "target_mode": "absolute",
+      "training_Ts_s": 0.1,
+      "horizon_steps": 20
+    }
+  },
+  "reference_config_sha256": "38dc56ac7df0fc4f4335b85c8be49a9e7c83d171341cbb64e823215b76c01c3a",
+  "runtime_note": "Prediction horizons aligned in physical time. Transformer uses the pinned reference settings with speed cost weight 1.0; LSTM retains active branch settings. Training corpus and execution-stack differences prevent architecture-only attribution."
+}

@@ -34,6 +34,10 @@ switch op
    [raw0,dummy]=ems_step(0,x0,o0,original0,dummy); %#ok<ASGLU>
    [~,~]=project_to_feasible_set(raw0,x0,o0,state.u,original0,cfg);
    state.runtime.initialization_s=toc(initTimer);
+   % Prewarming must not change the random sequence used by the experiment.
+   % Reset after all synthetic CEM samples have been generated so controller
+   % comparisons with a shared seed remain paired.
+   reset(state.stream);
   end
   runs(key)=state; return
  case 'remove'

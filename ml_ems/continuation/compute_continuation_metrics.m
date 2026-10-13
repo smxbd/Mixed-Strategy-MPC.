@@ -9,13 +9,17 @@ end
 vref=o(:,1); v=o(:,2); soc=o(:,3)/100;
 d=trapz(t,v)/3600; dr=trapz(t,vref)/3600;
 fuel=o(end,20)-o(1,20); err=vref-v;
-batt_kJ=trapz(t,o(:,17-1)); % observation 16 is Pb_act, kW
+battPower=o(:,17-1); % observation 16 is Pb_act, kW
+batt_kJ=trapz(t,battPower);
 if isfield(cfg,'fuel_density_kg_L')
  fuelDensity=cfg.fuel_density_kg_L;
 else
  fuelDensity=cfg.fuel_density_kg_per_l;
 end
-eq_l=fuel+batt_kJ/(cfg.eta_eq*cfg.LHV_kJ_kg*fuelDensity);
+% Match the SOC-adaptive equivalent-fuel factor used by CEM and ECMS.
+factor=max(0,cfg.control.ecms_factor + ...
+    cfg.control.ecms_soc_gain.*(cfg.control.soc_target-soc));
+eq_l=fuel+trapz(t,battPower.*factor/(cfg.LHV_kJ_kg*fuelDensity));
 m=struct('fuel_L',fuel,'fuel_L_100km',NaN,'equivalent_fuel_L_100km',NaN, ...
  'delta_SOC_percent',100*(soc(end)-soc(1)),'RMSE_kmh',sqrt(mean(err.^2)), ...
  'max_speed_error_kmh',max(abs(err)),'distance_km',d,'reference_distance_km',dr, ...
