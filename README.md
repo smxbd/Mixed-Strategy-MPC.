@@ -1,98 +1,117 @@
-# EarlyVersion
+# Rming's-advice
 
-这是 revision20 Existing 基线的 MATLAB/Simulink 控制器重构程序包。仓库当前只发布程序、配置、模型源文件和说明文档；运行日志、图片、仿真结果、训练权重和 MATLAB 缓存不包含在 GitHub 版本中。
+这是基于 `EarlyVersion` 的模型修改建议分支，用于记录 Riming 建议后的 EMS、ECMS、连续性 DP 和 CEM-MPC 修改，并恢复历史 Transformer/LSTM 候选权重进行对照仿真。
 
-## 环境要求
+远程分支：`Rming's-advice`
+
+远程仓库：[smxbd/Mixed-Strategy-MPC.](https://github.com/smxbd/Mixed-Strategy-MPC.)
+
+## 分支内容
+
+本分支包含以下改动：
+
+- 统一电池等效燃油率、SOC 反馈和 ECMS 因子计算。
+- 在连续性 DP 和 CEM-MPC 中使用电压相关的电池功率约束。
+- 改进 CEM-MPC 的功率探索范围、SOC 偏置热启动和精英样本拟合。
+- 修正预测器输出与运行时域之间的物理时间对齐。
+- 修正 Phase-D2 八维输入归一化统计量。
+- 提高 DP 的 SOC 和电池功率网格分辨率。
+- 恢复 `ml_ems/models/transformer_1.mat`、`ml_ems/models/lstm_1.mat` 和 Transformer 参考配置。
+
+历史权重是候选恢复文件，没有在本分支重新训练。训练数据、网络执行栈和运行配置存在差异，因此结果用于工程诊断，不能单独作为 Transformer 与 LSTM 的架构优劣结论。
+
+## 环境
 
 - MATLAB R2024b 或兼容版本
 - Simulink
-- 运行具体模型或训练流程时，需要项目原本依赖的其他 MathWorks 工具箱
-- Windows 用户建议使用 MATLAB 自带的 `matlab -batch` 或 MATLAB 图形界面运行
+- 项目模型运行所需的 MathWorks 工具箱
+- Python 3.10 或兼容版本（仅在重新生成图表时需要）
 
-## 获取代码
-
-```bash
-git clone https://github.com/smxbd/-.git EarlyVersion
-cd EarlyVersion
-```
-
-在 MATLAB 中把仓库根目录设为当前文件夹。不要直接从 `ml_ems` 子目录启动，因为程序需要通过根目录定位原始 `EMT.mdl` 和参数脚本。
-
-## 初始化 MATLAB 路径
+从仓库根目录启动 MATLAB，并初始化路径：
 
 ```matlab
 root = pwd;
 addpath(fullfile(root, "ml_ems"));
-paths = startup_ml_ems();
-cfg = experiment_config(root);
+startup_ml_ems();
 ```
 
-`startup_ml_ems` 会加入控制器、循环、评价、训练和测试目录；`experiment_config` 会建立本地生成循环、数据和结果目录，并初始化基线参数。
+不要从 `ml_ems` 子目录启动，因为循环、模型和结果目录都按仓库根目录解析。
 
-## 生成并检查驾驶循环
-
-```matlab
-cfg = experiment_config(pwd);
-city200     = build_city200('Save', true, 'OutputDir', cfg.cycles_dir);
-suburban400 = build_suburban400('Save', true, 'OutputDir', cfg.cycles_dir);
-stress300   = build_stress300('Save', true, 'OutputDir', cfg.cycles_dir);
-
-validate_cycle(city200);
-validate_cycle(suburban400);
-validate_cycle(stress300);
-```
-
-## 运行核心程序检查
+## 基础检查
 
 ```matlab
 startup_ml_ems();
 test_core();
+test_power_accounting();
 ```
 
-该检查覆盖燃油单位、循环长度、确定性扰动、控制器约束投影和确定性 CEM-MPC。若 MATLAB 报缺少工具箱或模型文件，应先补齐对应依赖。
-
-## 运行完整三控制器仿真
-
-完整入口是根目录的 `run_full_three_controller_batch.m`，控制器编号为：1 Existing、7 Transformer、6 LSTM。运行前必须补回与实验记录匹配的运行依赖：
-
-- `ml_ems/datasets/tped60d12a_aa1c_4f8a_8adf_7dac1f869816/training_config.mat`
-- `ml_ems/models/trained/` 下的 LSTM/Transformer 权重
-- 与权重对应的 `EMT_ML.slx` 和参数快照
-
-补齐后，在仓库根目录运行：
+可单独检查恢复的预测器和参考配置：
 
 ```matlab
-run('run_full_three_controller_batch.m');
+run(fullfile(root, "figure_outputs", "inspect_predictor_artifacts.m"));
 ```
 
-结果会写入 `ml_ems/results/`，批处理摘要会保存为 `full_three_controller_batch.mat`。这些结果文件默认属于本地运行产物，不应提交到程序仓库。
+## 三控制器仿真
 
-## 运行单次轻量接口
-
-`run_experiment` 也支持不启动 Simulink 的旧式控制器接口。调用方需要提供循环结构体、控制器函数句柄和选项结构体：
+完整入口为：
 
 ```matlab
-cycle = build_city200();
-opts = struct('initial_soc', 60);
-controller = @(cycle, k, state) zeros(1,4);  % 示例控制器
-out = run_experiment(cycle, controller, opts);
+run(fullfile(root, "figure_outputs", "run_three_controller_figures.m"));
 ```
 
-该接口用于检查循环和控制器调用链，不代表完整车辆动力学仿真。
+该批次固定 `seed=1`，包括三种驾驶循环和三种控制器：
 
-## 结果和图片
+| 控制器 | 编号 |
+|---|---:|
+| Existing EMS | 1 |
+| LSTM CEM-MPC | 6 |
+| Transformer CEM-MPC | 7 |
 
-结果图由保存的 `run.mat` 日志生成。程序仓库不包含这些日志和图片；如果已有本地结果，可调用：
+运行结果写入 `ml_ems/results/`。结果目录属于本地仿真产物，通常不应提交到 Git。
 
-```matlab
-reproduce_reference_figures(root, fullfile(root, 'reproduced_figures'));
+## 已保存的图表和数据
+
+已提交的交付物位于 `figure_outputs/three_controller_20261012/`：
+
+- `*_tracking_soc_fuel.svg/pdf`：速度、SOC 和累计油耗轨迹。
+- `*_metrics.svg/pdf`：单工况指标比较。
+- `*_transformer_components.svg/pdf`：Transformer 工况下的动力系统量。
+- `all_cycles_metrics.svg/pdf`：三工况汇总。
+- `comparison_metrics.csv`：九次仿真的指标表。
+- `data/*_trajectories.csv`：保留完整原生采样点的轨迹表。
+- `analysis.md`：图表分析和结果解释。
+- `data_manifest.json`：原始 MAT 运行文件的名称、采样数和哈希记录。
+
+重新绘图时，先确保 `figure_outputs/three_controller_20261012/data/` 中存在对应的运行数据，再执行：
+
+```bash
+python figure_outputs/plot_three_controllers.py \
+  --batch figure_outputs/three_controller_20261012
 ```
 
-函数位于 `ml_ems/evaluation/reproduce_reference_figures.m`。它需要九个完整仿真结果目录，缺少日志时只能先运行完整仿真或从实验归档恢复结果。
+脚本会同时导出 SVG、PDF、PNG 和 TIFF；Git 提交中保留 SVG/PDF 以及轻量 CSV，避免把大体积图片和 MAT 缓存写入仓库。
 
-## 常见问题
+## 单次结果摘要
 
-- **找不到 `training_config.mat`**：这是完整 Transformer/LSTM 延续仿真所需的实验配置，不属于当前程序-only 发布包。
-- **找不到训练权重**：从对应实验归档恢复 `ml_ems/models/trained/`，并确认权重与 `transformer_runtime_policy.json` 的哈希一致。
-- **找不到 `EMT.mdl`**：必须从仓库根目录启动，或把原始模型放回根目录。
-- **生成了大量缓存**：删除 `slprj/`、`ml_ems/results/` 下的临时目录；仓库的 `.gitignore` 已忽略常见 MATLAB 缓存和日志。
+以下结果来自固定随机种子下的九次诊断批次，单位与 `comparison_metrics.csv` 一致：
+
+| 工况 | 控制器 | 速度 RMSE (km/h) | 油耗 (L) | SOC 变化 (百分点) |
+|---|---|---:|---:|---:|
+| city200 | Existing | 0.776 | 3.927 | -0.114 |
+| city200 | LSTM | 17.893 | 0.144 | -14.284 |
+| city200 | Transformer | 0.874 | 3.737 | -1.276 |
+| suburban400 | Existing | 7.197 | 21.245 | +0.290 |
+| suburban400 | LSTM | 64.000 | 0.086 | -20.896 |
+| suburban400 | Transformer | 8.110 | 19.113 | -5.578 |
+| stress300 | Existing | 10.461 | 13.109 | +0.407 |
+| stress300 | LSTM | 33.634 | 0.639 | -12.247 |
+| stress300 | Transformer | 12.565 | 11.733 | -0.657 |
+
+低油耗必须结合 SOC 变化、速度跟踪误差、可行性约束和实际完成距离一起判断。当前 Transformer 结果仍出现较多物理约束超限和回退行为，不能直接视为相对于 EarlyVersion 的合格提升；LSTM 的低油耗也伴随明显放电和较大的跟踪误差。
+
+## 复现注意事项
+
+- 预测器按训练采样周期和运行采样周期进行物理时间插值，不把 20 步历史输出直接压缩成 10 步。
+- 三控制器批次使用同一随机种子，便于配对比较；单个 seed 不提供置信区间或显著性检验。
+- 高速或阶跃参考可能超出车辆能力，跟踪误差需要与动力学可行性一起解释。
+- `restored_predictor_manifest.json` 记录了权重哈希、训练周期和恢复状态。
