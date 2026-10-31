@@ -28,12 +28,17 @@ rp=get_param([parent '/Rate Transition2'],'PortHandles');
 source=@(port)get_param(get_param(port,'Line'),'SrcPortHandle');
 assert(source(sp.Inport(1))==source(op.Inport(1)),'EMS:Wiring','19-input sources differ.');
 assert(source(sp.Inport(3))==op.Outport(1),'EMS:Wiring','Original action not connected to wrapper port 3.');
-assert(source(rp.Inport(1))==sp.Outport(1),'EMS:Wiring','Wrapper does not feed original downstream rate transition.');
+route=[parent '/Controller Route']; cp=get_param(route,'PortHandles');
+assert(source(rp.Inport(1))==cp.Outport(1),'EMS:Wiring','Controller route does not feed the original downstream rate transition.');
+assert(source(cp.Inport(3))==op.Outport(1)&&source(cp.Inport(1))==sp.Outport(1), ...
+ 'EMS:Wiring','Existing direct route or Transformer branch is miswired.');
+assert(strcmp(get_param(route,'Criteria'),'u2 > Threshold')&&strcmp(get_param(route,'Threshold'),'1'), ...
+ 'EMS:Wiring','Unexpected route selection condition.');
 assert(strcmp(get_param([parent '/EMS Controller'],'Parameters'),'ems_runtime_config,controller_id'), ...
     'EMS:Selector','Unexpected controller selector binding.');
 assert(strcmp(get_param([parent '/EMS Controller'],'FunctionName'),'ems_sfun'),'EMS:Wrapper','Unexpected wrapper.');
 audit=struct('input_source_shared',true,'original_action_connected',true,'downstream_connected',true, ...
-    'controller_id',1,'wrapper_Ts',.02,'safety_bypassed_for_existing',true);
+    'controller_id',1,'wrapper_Ts',.02,'safety_bypassed_for_existing',true,'existing_bypasses_sampled_wrapper',true);
 % Log the upstream original action at the same rate as the existing EMS trace.
 logger=[parent '/Parity Original Action'];
 add_block('simulink/Sinks/To Workspace',logger,'VariableName','parity_original_action', ...

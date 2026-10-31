@@ -5,8 +5,25 @@ u=[]; trace=[];
 switch op
  case 'record_wrapper'
   state=runs(key);
+  if isfield(state.runtime,'storage')
+   state.runtime.storage.append(1,[varargin{1},varargin{2}]);
+   runs(key)=state;
+   if numel(varargin)>2,state.runtime.storage.finishWrapper(toc(varargin{3}));end
+   return;
+  end
   if ~isfield(state.runtime,'wrapper_times'), state.runtime.wrapper_times=zeros(0,2); end
-  state.runtime.wrapper_times(end+1,:)=[varargin{1},varargin{2}]; runs(key)=state; return
+  state.runtime.wrapper_times(end+1,:)=[varargin{1},varargin{2}];
+  if constraint_guard_enabled(state.cfg)
+   if ~isfield(state.runtime,'max_decision_wrapper_s')
+    state.runtime.max_decision_wrapper_s=0;state.runtime.max_safety_wrapper_s=0;
+   end
+   if abs(varargin{1}-state.last_time)<1e-9
+    state.runtime.max_decision_wrapper_s=max(state.runtime.max_decision_wrapper_s,varargin{2});
+   else
+    state.runtime.max_safety_wrapper_s=max(state.runtime.max_safety_wrapper_s,varargin{2});
+   end
+  end
+  runs(key)=state; return
  case 'last_report'
   u=lastReport; return
  case 'reset'
@@ -33,11 +50,29 @@ switch op
    dummy=state; original0=[3000 0 0 0];
    [raw0,dummy]=ems_step(0,x0,o0,original0,dummy); %#ok<ASGLU>
    [~,~]=project_to_feasible_set(raw0,x0,o0,state.u,original0,cfg);
+   % Exercise the QP constructor and solver before the first online callback.
+   project_qp(raw0,x0,o0,state.u,original0,cfg);
+   qpOptions=optimoptions('quadprog','Display','off','Algorithm','active-set');
+   quadprog(eye(4),zeros(4,1),[],[],[],[],-ones(4,1),ones(4,1),zeros(4,1),qpOptions);
+   state.runtime.initialization_s=toc(initTimer);
+   % Prewarming must not change the random sequence used by the experiment.
+   % Reset after all synthetic CEM samples have been generated so controller
+   % comparisons with a shared seed remain paired.
+   reset(state.stream);
+  end
+  if constraint_guard_enabled(cfg)
+   warmup_safety_paths(cfg);
+   state.runtime.storage=EMSRealtimeLog(cfg);
    state.runtime.initialization_s=toc(initTimer);
   end
   runs(key)=state; return
  case 'remove'
-  if isKey(runs,key), finished=runs(key); lastReport=finished.runtime; remove(runs,key); end; return
+  if isKey(runs,key)
+   finished=runs(key);lastReport=finished.runtime;
+   if isfield(lastReport,'storage'),lastReport=lastReport.storage.export(lastReport);end
+   remove(runs,key);
+  end
+  return
 end
 s=runs(key); t=varargin{1}; legacy=varargin{2}(:)'; obs=varargin{3}(:)'; original=varargin{4}(:)';
 callbackTimer=tic;
@@ -51,6 +86,17 @@ if t<=s.last_time+1e-9
  if s.cfg.controller_id==1, u=original; trace(40:47)=[u u]; end
  return
 end
+% Update once per unique callback, before either decision or safety projection.
+if isfield(s.cfg.control,'guard_cache'),s.cfg.control=rmfield(s.cfg.control,'guard_cache');end
+oldMotorObservation=[];
+if isfield(s.cfg.control,'guard_state'),oldMotorObservation=s.cfg.control.guard_state;end
+s.cfg=update_constraint_guard(s.cfg,t,legacy,obs,s.u);
+s.cfg=update_evt1_motion(s.cfg,oldMotorObservation);
+if constraint_guard_enabled(s.cfg)
+ s.cfg.control.guard_cache=execution_guard_limits(legacy,obs,s.u,s.cfg);
+ s.cfg.control.guard_cache_x=legacy;s.cfg.control.guard_cache_o=obs;
+ s.cfg.control.guard_cache_previous=s.u;
+end
 if s.cfg.controller_id~=1 && t<s.last_time+s.cfg.control.Ts-1e-8
  trace=s.trace; trace(1:39)=[legacy obs];
  if t>s.last_safety_time+1e-9
@@ -59,6 +105,9 @@ if s.cfg.controller_id~=1 && t<s.last_time+s.cfg.control.Ts-1e-8
   rawSafe=s.trace(40:43); if isfinite(s.last_stage)&&legacy(4)~=s.last_stage, rawSafe=s.u; end
   [u,dg]=project_to_feasible_set(rawSafe,legacy,obs,s.u,original,safetyCfg);
   dg.projection_seconds=toc(projectionTimer);
+  if isfield(s.runtime,'storage')
+   s.runtime.storage.append(5,[t legacy obs original rawSafe u s.u safetyCfg.control.Ts 0]);
+  end
   trace(44:51)=[u dg.projection_distance dg.fallback_flag dg.constraint_violation dg.hard_infeasible];
   s=execution_feedback(s,t,legacy,obs,rawSafe,u,false);
   s.u=u; s.trace=trace; s.last_safety_time=t; s.last_stage=legacy(4);
@@ -78,6 +127,9 @@ else
  if isfinite(s.last_stage)&&legacy(4)~=s.last_stage && ~execution_enabled(s.cfg), raw=s.u; end
  [u,dg]=project_to_feasible_set(raw,legacy,obs,s.u,original,safetyCfg);
  dg.projection_seconds=toc(projectionTimer);
+ if isfield(s.runtime,'storage')
+  s.runtime.storage.append(5,[t legacy obs original raw u s.u safetyCfg.control.Ts 1]);
+ end
 end
 elapsed=toc(timer);
 if s.cfg.controller_id==1, elapsed=NaN; end % Original compiled chart executes upstream; wrapper timing is not its compute time.
@@ -93,11 +145,16 @@ yes=cfg.controller_id==7 && isfield(cfg.control,'execution_aware') && cfg.contro
 end
 function s=execution_feedback(s,t,x,o,raw,u,isDecision)
 if ~execution_enabled(s.cfg), return; end
-den=max(x(5),1600); requested=raw(2)*den/9549; applied=u(2)*den/9549;
+engineSpeed=x(5);
+if constraint_guard_enabled(s.cfg) && abs(o(17))>1e-6,engineSpeed=9549*o(13)/o(17);end
+den=max(engineSpeed,1600); requested=raw(2)*den/9549; applied=u(2)*den/9549;
 if ~isempty(s.warm)
  % Re-anchor the entire retained plan to the latest down-stream command,
  % including the four safety callbacks between optimization decisions.
  s.warm=max(0,min(s.cfg.p.Pe_max,s.warm+applied-s.warm(1)));
+end
+if isfield(s.runtime,'storage')
+ s.runtime.storage.append(4,[t isDecision requested applied o(13) x(5) raw u]);return;
 end
 if ~isfield(s.runtime,'execution_commands'), s.runtime.execution_commands=zeros(0,14); end
 % Command-equivalent power uses the action-map denominator; measured Pe is
@@ -105,6 +162,15 @@ if ~isfield(s.runtime,'execution_commands'), s.runtime.execution_commands=zeros(
 s.runtime.execution_commands(end+1,:)=[t isDecision requested applied o(13) x(5) raw u];
 end
 function s=record_callback(s,elapsed,isDecision,dg,t)
+if isfield(s.runtime,'storage')
+ s.runtime.storage.append(3,[t dg.projection_seconds-dg.fallback_seconds dg.fallback_seconds]);
+ s.runtime.storage.append(2,[t isDecision dg.command_violation dg.state_violation elapsed]);
+ s.runtime.max_callback_s=max(s.runtime.max_callback_s,elapsed);
+ if isDecision,s.runtime.max_decision_callback_s=max(s.runtime.max_decision_callback_s,elapsed);
+ else,s.runtime.max_safety_callback_s=max(s.runtime.max_safety_callback_s,elapsed);end
+ s.runtime.callback_total_s=s.runtime.callback_total_s+elapsed;
+ s.runtime.callback_count=s.runtime.callback_count+1;return;
+end
 if isfield(dg,'projection_seconds')
  if ~isfield(s.runtime,'projection_times'), s.runtime.projection_times=zeros(0,3); end
  s.runtime.projection_times(end+1,:)=[t dg.projection_seconds-dg.fallback_seconds dg.fallback_seconds];

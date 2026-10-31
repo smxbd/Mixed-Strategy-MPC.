@@ -1,7 +1,8 @@
 function cfg = init_controller_params(varargin)
 p = inputParser; addParameter(p,'Seed',20260906); parse(p,varargin{:});
 cfg = struct('version','stageB-0.1','random_seed',p.Results.Seed,'control_period',0.1,'model_sample_time',0.02,'simscape_step',0.001,'initial_soc',60,'target_soc',60,'controller_id',1,'controller_name','Existing heuristic-grid EMS');
-cfg.fuel_density_kg_per_l=0.745; cfg.fuel_lhv_MJ_per_kg=42.7;
+% The reference plant and reported fuel-equivalent metrics use diesel.
+cfg.fuel_density_kg_per_l=0.84; cfg.fuel_lhv_MJ_per_kg=42.7;
 cfg.weights=struct('fuel',1,'battery_equiv',1,'speed',10,'terminal_soc',100,'delta_u',0.1,'switch',0.1,'constraint',1e4);
 cfg.cem=struct('horizon',25,'samples',256,'elite_fraction',0.10,'iterations',3,'risk_lambda',0);
 cfg.training_seeds = 1:8;
@@ -42,16 +43,27 @@ cfg.control = struct( ...
     ... % Conservative defaults; experiments may override after diagnostics.
     'soc_bias_gain',0, ...
     'soc_bias_max',0);
+% Keep speed tracking materially weighted so fuel minimization cannot exploit
+% a large predicted tracking error.
 cfg.control.weights = struct( ...
     'fuel',1, ...
     'battery',1, ...
-    'speed',0.03, ...
+    'speed',1.0, ...
     'terminal_soc',20000, ...
     'slew',0.02, ...
     'engine_start',2, ...
     'mode_switch',1, ...
     'constraint',1e5, ...
     'risk',0.5);
-cfg.eta_eq = 0.95;
+% Backward-compatible aliases must describe the active runtime settings.
+cfg.control_period=cfg.control.Ts;
+cfg.model_sample_time=cfg.control.legacy_Ts;
+cfg.cem.horizon=cfg.control.horizon;
+cfg.cem.samples=cfg.control.samples;
+cfg.cem.elite_fraction=cfg.control.elite_fraction;
+cfg.cem.iterations=cfg.control.iterations;
+% Equivalent fuel factor for battery energy.  Keep this consistent with
+% ECMS (fuel-equivalent energy, not battery chemical energy).
+cfg.eta_eq = cfg.control.ecms_factor;
 cfg.LHV_kJ_kg = 42700;
 end

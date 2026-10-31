@@ -18,7 +18,7 @@ function outputs(b)
 wrapperTimer=tic;
 [u,d]=ems_runtime('step',b.BlockHandle,b.CurrentTime,b.InputPort(1).Data,b.InputPort(2).Data,b.InputPort(3).Data);
 b.OutputPort(1).Data=double(u(:)); b.OutputPort(2).Data=double(d(:));
-ems_runtime('record_wrapper',b.BlockHandle,b.CurrentTime,toc(wrapperTimer));
+ems_runtime('record_wrapper',b.BlockHandle,b.CurrentTime,toc(wrapperTimer),wrapperTimer);
 end
 function terminate(b)
 ems_runtime('remove',b.BlockHandle);

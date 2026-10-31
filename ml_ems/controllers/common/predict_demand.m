@@ -8,8 +8,23 @@ forecast=zeros(H,4,members);
 for k=1:members
  a=nets{k}; X=((history-a.muX)./a.sigmaX)';
  Y=predict(a.net,{X},'MiniBatchSize',1); Y=Y.*a.sigmaY+a.muY;
- if isfield(a,'target_mode')&&strcmp(a.target_mode,'lastvalue_residual'), Y=Y+repmat(last(1:4),1,H); end
- forecast(:,:,k)=reshape(Y,4,H)';
+ % Historical sequence artifacts may emit a different horizon than the
+ % active runtime configuration (the archived LSTM emits 20 steps while
+ % the current controller runs 10). Align explicitly before reshaping.
+ Y=reshape(double(Y),1,[]); modelH=numel(Y)/4;
+ assert(modelH==floor(modelH)&&modelH>0,'EMS:PredictorShape', ...
+  'Predictor output has %d values; expected a multiple of 4.',numel(Y));
+ Y=reshape(Y,4,modelH)';
+ modelTs=cfg.control.Ts;
+ if isfield(a,'cfg')&&isfield(a.cfg,'Ts'), modelTs=a.cfg.Ts; end
+ modelTime=(1:modelH)*modelTs; runtimeTime=(1:H)*cfg.control.Ts;
+ assert(runtimeTime(end)<=modelTime(end)+1e-9,'EMS:PredictorHorizon', ...
+  'Requested forecast exceeds the trained physical horizon.');
+ if modelH~=H || modelTs~=cfg.control.Ts
+  Y=interp1([0 modelTime],[last(1:4);Y],runtimeTime,'linear');
+ end
+ if isfield(a,'target_mode')&&strcmp(a.target_mode,'lastvalue_residual'), Y=Y+repmat(last(1:4),H,1); end
+ forecast(:,:,k)=Y;
 end
 forecast(:,1,:)=max(0,min(120,forecast(:,1,:))); forecast(:,3,:)=max(0,forecast(:,3,:));
 forecast(:,4,:)=max(0,min(.2,forecast(:,4,:)));

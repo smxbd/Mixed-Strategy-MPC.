@@ -1,0 +1,6 @@
+function enabled=constraint_guard_enabled(cfg)
+% Scope this unvalidated repair to the two requested Transformer cases.
+enabled=isfield(cfg,'controller_id')&&cfg.controller_id==7&& ...
+ isfield(cfg,'cycle_name')&&any(strcmp(char(cfg.cycle_name),{'stress300','suburban400'}))&& ...
+ isfield(cfg.control,'constraint_guard_enabled')&&cfg.control.constraint_guard_enabled;
+end

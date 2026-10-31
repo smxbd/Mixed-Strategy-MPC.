@@ -1,5 +1,7 @@
 function input=make_simulation_input(cfg,c,method)
 cfg.controller_id=method; names=controller_registry; cfg.controller_name=names{method};
+cfg.cycle_name=c.name;
+if method==7, cfg=resolve_transformer_config(cfg); end
 input=Simulink.SimulationInput('EMT_ML'); p=cfg.p;
 p.SOC0=cfg.initial_soc_percent; p.mass=p.mass*cfg.mass_scale;
 p.Time=c.time'; p.v_cyc=c.v_ref'; p.Time_ele=c.time'; p.ele_map=c.aux_power';

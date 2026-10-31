@@ -1,16 +1,33 @@
 {
-  "version": "transformer-config-source-v2-executable-actions",
+  "version": "transformer-config-source-v3-reference-physics-restored",
   "default_profile": "executable_actions",
-  "selection_status": "same_cycle_command_gap_removed_SOC_and_rare_fallbacks_unresolved",
+  "selection_status": "reference_physics_parity_passed_Transformer_three_cycles_completed_constraints_not_accepted",
   "reference_config": "transformer_reference_config.mat",
   "reference_sha256": "38dc56ac7df0fc4f4335b85c8be49a9e7c83d171341cbb64e823215b76c01c3a",
-  "model_sha256": "d595aa3989c3655654f77b78063e347c0f8d5572a677b5a9361948c4a0a7a36e",
+  "model_sha256": "54f0b32b7b2353b3c8c1de7a5ad30be81ac078ffc329bb20658812c34642ab4d",
   "weights_sha256": "dbc198b06e4141ac8321a62f961790b40c41c5b52790f4726b2c5fde0b14eed8",
   "profiles": {
-    "legacy_flags": {"incremental_balance": false, "qp_projection": false},
-    "incremental_only": {"incremental_balance": true, "qp_projection": false},
-    "qp_only": {"incremental_balance": false, "qp_projection": true},
-    "trained_flags": {"incremental_balance": true, "qp_projection": true},
-    "executable_actions": {"incremental_balance": true, "qp_projection": true, "execution_aware": true}
-  }
+    "legacy_flags": {
+      "incremental_balance": false,
+      "qp_projection": false
+    },
+    "incremental_only": {
+      "incremental_balance": true,
+      "qp_projection": false
+    },
+    "qp_only": {
+      "incremental_balance": false,
+      "qp_projection": true
+    },
+    "trained_flags": {
+      "incremental_balance": true,
+      "qp_projection": true
+    },
+    "executable_actions": {
+      "incremental_balance": true,
+      "qp_projection": true,
+      "execution_aware": true
+    }
+  },
+  "previous_model_sha256": "d595aa3989c3655654f77b78063e347c0f8d5572a677b5a9361948c4a0a7a36e"
 }

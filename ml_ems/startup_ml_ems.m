@@ -5,7 +5,11 @@ folders={'continuation','config','cycles','models','controllers','controllers/co
  'controllers/dp','controllers/ecms','controllers/mlp_policy','controllers/lastvalue_cem', ...
  'controllers/lstm_cem','controllers/transformer_cem','training','evaluation','tests'};
 addpath(paths.root);
-for k=1:numel(folders), addpath(fullfile(paths.root,folders{k})); end
+addpath(paths.project);
+for k=1:numel(folders)
+ folder=fullfile(paths.root,folders{k});
+ if isfolder(folder), addpath(folder); end
+end
 paths.results=fullfile(paths.root,'results'); paths.datasets=fullfile(paths.root,'datasets');
 paths.models=fullfile(paths.root,'models');
 end

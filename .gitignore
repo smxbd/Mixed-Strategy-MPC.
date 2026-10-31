@@ -1,8 +1,32 @@
-# MATLAB / Simulink generated caches and temporary logs
+# Generated figures, simulation outputs and reports
+figure_outputs/
+ml_ems/results/
+ml_ems/datasets/
+ml_ems/repairs/
+model_reference_audit_*/
+raw_data_manifest_*.json
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+*.tif
+*.tiff
+*.fig
+*.csv
+*.xlsx
+*.log
+*.zip
+*.asv
+*.bak
+*.mat
+!/parameter.mat
+!/ml_ems/config/transformer_reference_config.mat
+# Keep the active Simulink model; omit inspection and backup models.
+*.slx
+!/ml_ems/models/EMT_ML.slx
 slprj/
 *.slxc
-*.log
-
-# Reproducible run outputs are kept under ml_ems/results; ignore ad-hoc root dumps.
-/*.mat
-/*.png
+cache/
+codegen/
+__pycache__/

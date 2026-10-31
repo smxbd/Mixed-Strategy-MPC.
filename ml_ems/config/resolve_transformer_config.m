@@ -19,6 +19,9 @@ assert(isfield(policy.profiles,profile),'EMS:UnknownTransformerProfile', ...
 % workspace/training-config sources. Plant, cycle, seed and output paths
 % remain controlled by the calling experiment.
 cfg.control=reference.cfg.control;
+% Preserve the active branch's corrected tracking objective while retaining
+% the horizon and architecture settings required by the trained artifact.
+cfg.control.weights.speed=1.0;
 flags=policy.profiles.(profile);
 cfg.control.incremental_balance=logical(flags.incremental_balance);
 cfg.control.qp_projection=logical(flags.qp_projection);
@@ -38,6 +41,10 @@ if isfield(cfg,'execution_options')
   end
  end
 end
+% Deliberately scoped: city200 and other controllers retain their old path.
+cfg.control.constraint_guard_enabled=strcmp(profile,'executable_actions') && ...
+ isfield(cfg,'cycle_name') && any(strcmp(char(cfg.cycle_name),{'stress300','suburban400'}));
+cfg.control.motor_dynamics=cfg.control.constraint_guard_enabled;
 cfg.transformer_profile=profile;
 cfg.transformer_config_source=struct('version',policy.version, ...
     'policy_file',policyFile,'policy_sha256',file_sha256(policyFile), ...

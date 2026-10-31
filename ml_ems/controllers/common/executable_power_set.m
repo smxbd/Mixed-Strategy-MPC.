@@ -4,16 +4,24 @@ function e=executable_power_set(x,o,previous,original,cfg)
 % This is command feasibility, not a guarantee about future measured states.
 x=x(:)'; o=o(:)'; previous=previous(:)'; original=original(:)';
 p=cfg.p; c=cfg.control; [M,offset]=engine_load_relation(x,cfg);
-den=max(x(5),1600); demand=M(2,:)*original(3:4)';
+guarded=constraint_guard_enabled(cfg);
+engineSpeed=x(5);
+if guarded && abs(o(17))>1e-6,engineSpeed=9549*o(13)/o(17);end
+den=max(engineSpeed,1600); demand=M(2,:)*original(3:4)';
 motors=M\[9549/den  -offset;0 demand];
 lo=max([x(7) x(10) x(12) x(14)],previous-c.rate*c.Ts);
 teMax=min(x(9),interp1(p.ne_map,p.Te_max_map,min(4500,max(1600,x(5)))));
 hi=min([x(6) teMax x(11) x(13)],previous+c.rate*c.Ts);
+if guarded
+ guard=execution_guard_limits(x,o,previous,cfg);
+ lo(1)=max(lo(1),guard.speed_lower);hi(1)=min(hi(1),guard.speed_upper);
+ teMax=min(teMax,guard.engine_upper);hi(2)=min(hi(2),teMax);
+end
 nr=min(hi(1),max(lo(1),original(1)));
 e=struct('a',[0 9549/den motors(:,1)'], ...
  'b',[nr 0 motors(:,2)'],'intervals',zeros(0,2), ...
  'fallback',original,'fallback_flag',0,'mode',0,'previous',previous, ...
- 'previous_power',previous(2)*den/9549,'engine_speed',x(5), ...
+ 'previous_power',previous(2)*den/9549,'engine_speed',engineSpeed, ...
  'engine_target',nr,'power_cap',max(0,min(p.Pe_max,teMax*den/9549)), ...
  'power_rate',c.rate(2)*den/9549,'flow',o(6:7)/9549, ...
  'aux',o(9)+p.PN0+x(18),'efficiency',c.motor_efficiency);
@@ -21,7 +29,10 @@ v=min(1050,max(750,o(4)));
 bmax=interp1(p.Voltage_epr,p.Pb_max,v); bmin=interp1(p.Voltage_epr,p.Pb_min,v);
 if o(3)/100<=c.soc_min, bmax=min(bmax,0); end
 if o(3)/100>=c.soc_max, bmin=max(bmin,0); end
-if all(lo<=hi) && all(isfinite([e.a e.b]))
+if guarded
+ bmin=max(bmin,guard.battery_lower);bmax=min(bmax,guard.battery_upper);
+end
+if all(lo<=hi) && bmin<=bmax && all(isfinite([e.a e.b]))
  for sa=[-1 1], for sb=[-1 1]
   signs=[sa sb]; el=e.flow.*c.motor_efficiency.^(-signs);
   pa=el*e.a(3:4)'; pb=el*e.b(3:4)'+e.aux;

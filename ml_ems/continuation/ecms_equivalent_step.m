@@ -8,7 +8,8 @@ for k=1:numel(grid), actions(k,:)=action_from_power(grid(k),x,o,original,cfg); e
 [~,pb,detail]=constraint_residual(actions,x,o,previous,cfg);
 factor=max(0,cfg.control.ecms_factor+cfg.control.ecms_soc_gain*(cfg.control.soc_target-o(3)/100));
 fuel=fuel_rate(x(5)+zeros(size(pb)),actions(:,2),cfg.p);
-cost=fuel+factor*pb/cfg.LHV_kJ_kg*1000;
+[batteryEquivalent,~]=battery_equivalent_fuel_rate(pb,o(3)/100,cfg);
+cost=fuel+batteryEquivalent;
 valid=detail.command<=cfg.control.constraint_tolerance & isfinite(cost);
 if any(valid)
  cost(~valid)=Inf; [best,j]=min(cost); u=actions(j,:); found=true;

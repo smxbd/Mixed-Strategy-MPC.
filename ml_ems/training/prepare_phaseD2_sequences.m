@@ -28,7 +28,11 @@ end
 assert(~isempty(data.train.X)&&~isempty(data.validation.X),'EMS:PhaseD2Data','Both splits need completed runs.');
 assert(isempty(intersect(unique(data.train.trajectory),unique(data.validation.trajectory))), ...
     'EMS:Leakage','A seed occurs in both splits.');
-data.muX=mean(data.train.current,1); data.sigmaX=max(std(data.train.current,0,1),1e-6);
+% Normalize each of the eight input features using the training windows.
+% The four-column `current` array only contains prediction targets and is
+% not a valid statistic for the 8-by-history input tensors.
+trainX=cat(2,data.train.X{:});
+data.muX=mean(trainX,2)'; data.sigmaX=max(std(trainX,0,2)',1e-6);
 data.muY=zeros(1,4*horizon); data.sigmaY=max(std(data.train.Y,0,1),1e-6);
 for name={'train','validation','test'}
     b=data.(name{1});

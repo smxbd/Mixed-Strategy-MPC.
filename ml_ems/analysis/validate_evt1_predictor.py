@@ -1,0 +1,11 @@
+from pathlib import Path
+R=Path(r'C:\Users\LAPTOP1210\Desktop\Rming-advice\Rming-advice')
+s=(R/'ml_ems/analysis/validate_physical_speed_predictor.py').read_text()
+s=s.replace("BASE=ROOT/'ml_ems/results/motor_speed_stage2_20261026_001'", "BASE=ROOT/'ml_ems/results/motor_speed_stage2_20261026_001/evt1_validation'\nBASE.mkdir(exist_ok=True)")
+s=s.replace("ROOT/'ml_ems/results/motor_speed_audit_20261026_001/validation_status.json'", "ROOT/'ml_ems/results/motor_speed_stage2_20261026_001/full_regression/status.json'")
+s=s.replace("train=(t[tick]>=40)&(t[tick]<49)&validmode&(mode==3)", "train=(t[tick]>=10)&(t[tick]<20)&validmode&(mode==1)")
+s=s.replace("[(51.268,56.394),(90.352,104.468),(143.368,152.434),(262.382,272.492)]", "[(20,31),(168,172)]")
+s=s.replace("train=(t[tick]>=180)&(t[tick]<230)&validmode&(mode==3)", "train=(t[tick]>=10)&(t[tick]<20)&validmode&(mode==1)")
+s=s.replace("test=(t[tick]>=250)&(t[tick]<=355)", "test=(t[tick]>=20)&(t[tick]<=35)")
+s=s.replace('finite=validmode&test','finite=(mode==1)&test')
+exec(compile(s,'evt1_validation','exec'),{'__name__':'__main__'})

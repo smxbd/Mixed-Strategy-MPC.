@@ -12,6 +12,9 @@ if isfield(cfg.control,'incremental_balance')&&cfg.control.incremental_balance
  [M,~]=engine_load_relation(x,cfg); cfg.control.dynamic_torque_offset=original(2)-M(1,:)*original(3:4)';
 end
 s=struct('cfg',cfg,'history',zeros(0,8),'warm',[],'nets',{nets},'stream',RandStream('mt19937ar','Seed',98765),'u',original);
+if constraint_guard_enabled(cfg)
+ s.last_time=-Inf;s.last_safety_time=-Inf;s.last_stage=NaN;
+end
 % The warm-up path calls ems_step before ems_runtime has attached its
 % diagnostics state.  Provide the same minimal runtime container so the
 % callback bookkeeping is valid during predictor prewarming.

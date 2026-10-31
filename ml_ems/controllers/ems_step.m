@@ -28,12 +28,20 @@ switch s.cfg.controller_id
   else
    [power,u,pb]=map_executable_power(power,execution);
    s.warm(1)=power;
-   if ~isfield(s.runtime,'execution_plan'), s.runtime.execution_plan=zeros(0,5); end
-   s.runtime.execution_plan(end+1,:)=[t power pb execution.mode execution.fallback_flag];
+   if isfield(s.runtime,'storage')
+    s.runtime.storage.append(6,[t power pb execution.mode execution.fallback_flag]);
+   else
+    if ~isfield(s.runtime,'execution_plan'),s.runtime.execution_plan=zeros(0,5);end
+    s.runtime.execution_plan(end+1,:)=[t power pb execution.mode execution.fallback_flag];
+   end
   end
   actionSeconds=toc(actionTimer);
-  if ~isfield(s.runtime,'module_times'), s.runtime.module_times=zeros(0,4); s.runtime.forecasts={}; end
-  s.runtime.module_times(end+1,:)=[t forecastSeconds cemSeconds actionSeconds];
-  s.runtime.forecasts{end+1}=forecast;
+  if isfield(s.runtime,'storage')
+   s.runtime.storage.append(7,[t forecastSeconds cemSeconds actionSeconds],forecast);
+  else
+   if ~isfield(s.runtime,'module_times'),s.runtime.module_times=zeros(0,4);s.runtime.forecasts={};end
+   s.runtime.module_times(end+1,:)=[t forecastSeconds cemSeconds actionSeconds];
+   s.runtime.forecasts{end+1}=forecast;
+  end
 end
 end

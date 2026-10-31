@@ -8,7 +8,7 @@ addpath(this_dir,'-begin');
 if nargin<4, seed=cfg.seed; end
 if nargin<3, method=cfg.controller_id; end
 if isstruct(cycle), c=cycle; else, c=load_cycle(cycle); end
-cfg.seed=seed; cfg.controller_id=method;
+cfg.seed=seed; cfg.controller_id=method; cfg.cycle_name=c.name;
 names=controller_registry; cfg.controller_name=names{method};
 cfg=resolve_transformer_config(cfg);
 folder=create_run_directory(cfg,sprintf('%s_m%d_s%d',c.name,method,seed));
@@ -38,11 +38,22 @@ try
  p.controller_id=method; p.controller_name=cfg.controller_name; p.ems_runtime_config=cfg;
  fields=fieldnames(p);
  for k=1:numel(fields), input=input.setVariable(fields{k},p.(fields{k}),'Workspace','EMT_ML'); end
+ governed=method==7&&strcmp(c.name,'suburban400');
+ if governed
+  governor=speed_reference_governor(c,cfg.p);
+  input=input.setVariable('governed_v_cyc',governor.safe_kmh','Workspace','EMT_ML');
+  driver=Simulink.ID.getFullName('EMT_ML:22002');
+  input=input.setBlockParameter(driver,'Table','governed_v_cyc');
+ end
  input=input.setModelParameter('StopTime',num2str(min(c.time(end),cfg.stop_time)),'ReturnWorkspaceOutputs','on','LimitDataPoints','off');
  if cfg.fast_restart, input=input.setModelParameter('FastRestart','on'); end
- out=sim(input); run.wall_seconds=toc(timer); run.runtime=ems_runtime('last_report',0);
+ out=sim(input); run.wall_seconds=toc(timer);
+ save(fullfile(folder,'simulation.mat'),'out','-v7.3'); % Retain raw data even if accounting fails.
+ run.model_sha256=file_sha256(fullfile(folder,'EMT_ML.slx'));
+ run.physical_schema_version=2; run.runtime=ems_runtime('last_report',0);
  trace=out.get('ems_trace'); run.time=trace.time; run.trace=trace.signals.values;
  if ismember('physical_observations',out.who), run.physical=out.get('physical_observations'); end
+ if governed,run.governance=governance_observations(c,cfg.p,run.physical);end
  if ismember('Pi_Po',out.who), run.transmission=out.get('Pi_Po'); end
 % Simulink may restore the MATLAB path during simulation cleanup; restore
 % the helper path immediately before post-processing as well.
@@ -50,6 +61,8 @@ addpath(this_dir,'-begin');
 old_dir=pwd;
 cd(this_dir);
 run.metrics=compute_continuation_metrics(run,cfg);
+export_physical_torque_audit(run,cfg.p,fullfile(folder,'physical_torque_audit.csv'));
+writetable(ems_app_trajectories(run),fullfile(folder,'trajectories.csv'));
 cd(old_dir);
 run.status='completed';
  if run.time(end)<min(c.time(end),cfg.stop_time)-.021, run.status='early_stop'; end
@@ -63,10 +76,15 @@ if isfield(run,'metrics') && ~isempty(fieldnames(run.metrics))
  m=run.metrics;
  acceptance.hard_commands_pass=isfinite(m.constraint_violations)&&m.constraint_violations==0;
  if isfield(m,'safety_infeasible_samples'), acceptance.hard_commands_pass=acceptance.hard_commands_pass&&m.safety_infeasible_samples==0; end
- acceptance.physical_limits_pass=m.physical_violation_samples==0;
+ acceptance.physical_limits_pass=m.physical_violation_samples==0&&m.engine_speed_undefined_samples==0;
  acceptance.online_budget_pass=isfinite(m.max_computation_s)&&m.max_computation_s<=cfg.control.Ts;
  if isfield(m,'max_decision_callback_s'), acceptance.online_budget_pass=acceptance.online_budget_pass&&m.max_decision_callback_s<=cfg.control.Ts; end
  if isfield(m,'max_safety_callback_s'), acceptance.online_budget_pass=acceptance.online_budget_pass&&m.max_safety_callback_s<=cfg.control.legacy_Ts; end
+ if isfield(m,'max_decision_wrapper_s')
+  acceptance.online_budget_pass=acceptance.online_budget_pass && ...
+   isfinite(m.max_decision_wrapper_s)&&m.max_decision_wrapper_s<=cfg.control.Ts && ...
+   isfinite(m.max_safety_wrapper_s)&&m.max_safety_wrapper_s<=cfg.control.legacy_Ts;
+ end
  if isfield(cfg,'reference_RMSE'), acceptance.tracking_comparable=m.RMSE_kmh<=cfg.reference_RMSE+.25; end
  acceptance.accepted=acceptance.simulation_completed&&acceptance.hard_commands_pass&&acceptance.physical_limits_pass&&acceptance.online_budget_pass&&acceptance.tracking_comparable;
 end
@@ -77,7 +95,7 @@ if isfield(cfg.control,'reference_balance_soft') && cfg.control.reference_balanc
  run.acceptance.interface_note='Reference balance is soft; physical dynamic balance remains unvalidated.';
 end
 save(fullfile(folder,'run.mat'),'run','-v7.3');
-fid=fopen(fullfile(folder,'status.json'),'w','n','UTF-8'); fprintf(fid,'%s',jsonencode(rmfield(run,intersect(fieldnames(run),{'trace','time'})),'PrettyPrint',true)); fclose(fid);
+fid=fopen(fullfile(folder,'status.json'),'w','n','UTF-8'); fprintf(fid,'%s',jsonencode(rmfield(run,intersect(fieldnames(run),{'trace','time','physical','transmission','runtime'})),'PrettyPrint',true)); fclose(fid);
 if bdIsLoaded('EMT_ML'), close_system('EMT_ML',0); end
 fprintf('RUN %s %s wall=%.1fs\n',c.name,run.status,run.wall_seconds);
 if strcmp(run.status,'failed'), fprintf('%s\n',run.error); end
